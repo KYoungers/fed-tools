@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FED Campus Dashboard</title>
+<style>
+  :root {
+    --bg: #eef3f8;
+    --panel: #ffffff;
+    --panel-alt: #f4f8fc;
+    --border: #d9e3ee;
+    --navy: #3f6a95;
+    --navy-dark: #2f5578;
+    --text: #1c2b3a;
+    --text-soft: #5b7086;
+    --red: #c0392b;
+    --red-dark: #a5311f;
+    --green: #1aa260;
+    --amber: #b9740a;
+    --error: #c0392b;
+    --blue-accent: #2f7fc1;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, "Segoe UI", Arial, sans-serif; background: var(--bg); color: var(--text); }
+
+  #fed-nav { background: var(--red); padding: 8px 16px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  #fed-nav .label { color: #fff; font-size: 12px; font-weight: bold; margin-right: 8px; }
+  #fed-nav a { padding: 5px 14px; background: var(--navy); color: #fff; border-radius: 5px; font-size: 12px; font-weight: bold; text-decoration: none; display: inline-block; }
+  #fed-nav a:hover { background: var(--navy-dark); }
+  #fed-nav a.current { background: var(--red-dark); }
+
+  #fed-dash-header {
+    background: var(--navy); color: #fff; padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+  }
+  #fed-dash-header img { height: 56px; width: auto; background: #fff; border-radius: 6px; padding: 3px; }
+  #fed-dash-title { font-size: 20px; font-weight: bold; }
+  #fed-dash-sub { font-size: 13px; color: #dfeaf5; }
+
+  .count-cards { display: flex; gap: 12px; flex-wrap: wrap; }
+  .count-card { background: rgba(255,255,255,0.12); border-radius: 10px; padding: 10px 18px; text-align: center; min-width: 100px; }
+  .count-number { font-size: 32px; font-weight: bold; color: #fff; }
+  .count-label { font-size: 11px; color: #dfeaf5; }
+
+  #fed-controls {
+    background: var(--panel); padding: 12px 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; border-bottom: 1px solid var(--border);
+  }
+  .view-toggle { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .toggle-btn {
+    padding: 6px 18px; border-radius: 6px; border: none; background: var(--panel-alt); color: var(--navy-dark); font-size: 13px; font-weight: bold; cursor: pointer;
+  }
+  .toggle-btn.active { background: var(--navy); color: #fff; }
+  .filter-btn {
+    padding: 6px 16px; border-radius: 20px; border: none; background: var(--panel-alt); color: var(--navy-dark); font-size: 12px; font-weight: bold; cursor: pointer;
+  }
+  .filter-btn.active { background: var(--navy); color: #fff; }
+  .sep { color: var(--border); margin: 0 4px; }
+  #refresh-btn { padding: 7px 16px; background: var(--green); color: #fff; border: none; border-radius: 6px; font-size: 13px; font-weight: bold; cursor: pointer; }
+  #refresh-btn:hover { background: #15804d; }
+  #last-updated { font-size: 12px; color: var(--text-soft); }
+
+  #fed-content { padding: 16px 20px; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+  .empty-state { text-align: center; padding: 60px; color: var(--text-soft); grid-column: 1/-1; font-size: 16px; }
+
+  .family-card { background: var(--panel); border-radius: 10px; border: 1px solid var(--border); overflow: hidden; box-shadow: 0 1px 3px rgba(20,30,40,0.06); }
+  .family-header { background: var(--navy); color: #fff; padding: 8px 14px; font-size: 14px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
+  .family-count { font-size: 11px; background: rgba(255,255,255,0.2); padding: 2px 8px; border-radius: 10px; }
+  .member-row { display: flex; align-items: center; padding: 6px 14px; gap: 10px; border-bottom: 1px solid var(--panel-alt); }
+  .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .member-name { font-size: 14px; color: var(--text); flex: 1; }
+  .member-type { font-size: 11px; color: var(--text-soft); }
+  .member-time { font-size: 11px; color: var(--text-soft); }
+
+  .slot-block { background: var(--panel); border-radius: 10px; border: 1px solid var(--border); overflow: hidden; box-shadow: 0 1px 3px rgba(20,30,40,0.06); margin-bottom: 12px; grid-column: 1/-1; max-width: 480px; }
+  .slot-header { background: var(--navy); color: #fff; padding: 8px 14px; font-size: 14px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
+  .slot-fill { font-size: 11px; padding: 2px 10px; border-radius: 10px; color: #fff; }
+  .slot-row { display: flex; align-items: center; padding: 8px 14px; gap: 12px; border-bottom: 1px solid var(--panel-alt); }
+  .slot-name { flex: 1; font-size: 13px; color: var(--text); }
+  .slot-empty { color: var(--error); font-style: italic; }
+  .slot-checked { color: var(--green); font-weight: bold; }
+  .slot-assigned { font-size: 11px; color: var(--text-soft); }
+  .slot-time { font-size: 11px; color: var(--text-soft); min-width: 50px; text-align: right; }
+</style>
+</head>
+<body>
+
+<div id="fed-nav">
+  <span class="label">FED Admin:</span>
+  <a href="dashboard.html" class="current">Campus Dashboard</a>
+  <a href="badge-generator.html">Badge Generator</a>
+  <a href="attendance-kiosk.html">Attendance Kiosk</a>
+  <a href="service-kiosk.html">Service Kiosk</a>
+</div>
+
+<div id="fed-dash-header">
+  <div style="display:flex;align-items:center;gap:12px;">
+    <img src="https://www.familyeducationdays.com/tx/familyeducationdays/2026/26-27%20Logo.png" alt="FED">
+    <div>
+      <div id="fed-dash-title">Campus Dashboard</div>
+      <div id="fed-dash-sub">Live view of who is currently on campus</div>
+    </div>
+  </div>
+  <div class="count-cards">
+    <div class="count-card"><div class="count-number" id="count-total">—</div><div class="count-label">Total</div></div>
+    <div class="count-card"><div class="count-number" id="count-parents">—</div><div class="count-label">Parents</div></div>
+    <div class="count-card"><div class="count-number" id="count-students">—</div><div class="count-label">Students</div></div>
+    <div class="count-card"><div class="count-number" id="count-adults">—</div><div class="count-label">Approved Adults</div></div>
+  </div>
+</div>
+
+<div id="fed-controls">
+  <div class="view-toggle">
+    <button class="toggle-btn active" id="view-attendance">Attendance</button>
+    <button class="toggle-btn" id="view-serve">Serve Hours</button>
+    <span class="sep">|</span>
+    <span id="attendance-filters" style="display:inline-flex;gap:8px;flex-wrap:wrap;">
+      <button class="filter-btn active" id="filter-all" data-filter="all">All</button>
+      <button class="filter-btn" id="filter-parents" data-filter="Parent">Parents</button>
+      <button class="filter-btn" id="filter-students" data-filter="Student">Students</button>
+      <button class="filter-btn" id="filter-adults" data-filter="Approved Adult">Approved Adults</button>
+    </span>
+  </div>
+  <div style="display:flex;align-items:center;gap:12px;">
+    <span id="last-updated">Not yet loaded</span>
+    <button id="refresh-btn">Refresh</button>
+  </div>
+</div>
+
+<div id="fed-content">
+  <div class="empty-state">Loading campus data...</div>
+</div>
+
+<script>
+const WEBAPP = 'https://script.google.com/macros/s/AKfycbxQTULyjaWTitjvrbaTp3SNgrTggvkQHUuL_A5ps5naR6egVj3OGAUUL_o0sdZK9Bdo/exec';
+let people  = [];
+let slots   = [];
+let serveIn = [];
+let filter  = 'all';
+let view    = 'attendance';
+
+function setView(v) {
+  view = v;
+  document.getElementById('view-attendance').classList.toggle('active', v === 'attendance');
+  document.getElementById('view-serve').classList.toggle('active', v === 'serve');
+  document.getElementById('attendance-filters').style.display = v === 'attendance' ? 'inline-flex' : 'none';
+  render();
+}
+
+function setFilter(f, btn) {
+  filter = f;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  render();
+}
+
+async function loadData() {
+  try {
+    const [attendRes, slotsRes, serveRes] = await Promise.all([
+      fetch(WEBAPP + '?action=getCurrentlyIn'),
+      fetch(WEBAPP + '?action=getSlots'),
+      fetch(WEBAPP + '?action=getServeCheckedIn')
+    ]);
+    people  = (await attendRes.json()).people || [];
+    slots   = (await slotsRes.json()).slots   || [];
+    serveIn = (await serveRes.json()).active  || [];
+    render();
+    document.getElementById('last-updated').textContent =
+      'Updated: ' + new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+  } catch(e) {
+    document.getElementById('fed-content').innerHTML =
+      '<div class="empty-state" style="color:var(--error);">Error: ' + e.message + '</div>';
+  }
+}
+
+function render() {
+  view === 'serve' ? renderServe() : renderAttendance();
+}
+
+function renderAttendance() {
+  const filtered = filter === 'all' ? people : people.filter(p => p.type === filter);
+  document.getElementById('count-total').textContent    = people.length;
+  document.getElementById('count-parents').textContent  = people.filter(p => p.type === 'Parent').length;
+  document.getElementById('count-students').textContent = people.filter(p => p.type === 'Student').length;
+  document.getElementById('count-adults').textContent   = people.filter(p => p.type === 'Approved Adult').length;
+
+  const content = document.getElementById('fed-content');
+  content.style.display = 'grid';
+  if (filtered.length === 0) {
+    content.innerHTML = `<div class="empty-state">${filter === 'all' ? 'No one is currently on campus.' : 'No ' + filter + 's currently on campus.'}</div>`;
+    return;
+  }
+
+  const families = {};
+  filtered.forEach(p => {
+    const key = p.familyID || 'unknown';
+    if (!families[key]) families[key] = { familyName: p.familyName || 'Unknown', members: [] };
+    families[key].members.push(p);
+  });
+  const sorted = Object.values(families).sort((a, b) => a.familyName.localeCompare(b.familyName));
+
+  content.innerHTML = sorted.map(fam => {
+    const order = { Parent: 0, Student: 1, 'Approved Adult': 2 };
+    const members = fam.members.sort((a, b) => (order[a.type] || 0) - (order[b.type] || 0));
+    const rows = members.map(m => {
+      const dot = m.type === 'Parent' ? '#1aa260' : m.type === 'Student' ? '#b9740a' : '#7a5fb0';
+      const time = m.checkInTime ? new Date(m.checkInTime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '';
+      return `<div class="member-row">
+        <div class="dot" style="background:${dot};"></div>
+        <div class="member-name">${m.displayName}</div>
+        <div class="member-type">${m.type}</div>
+        <div class="member-time">${time}</div>
+      </div>`;
+    }).join('');
+    return `<div class="family-card">
+      <div class="family-header"><span>${fam.familyName}</span><span class="family-count">${members.length} member${members.length !== 1 ? 's' : ''}</span></div>
+      <div>${rows}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderServe() {
+  const content = document.getElementById('fed-content');
+  if (slots.length === 0) {
+    content.innerHTML = '<div class="empty-state">No slots loaded. Make sure slots are synced in the sheet.</div>';
+    return;
+  }
+
+  const serveMap = {};
+  serveIn.forEach(s => { serveMap[s.slotID] = s; });
+
+  const timeGroups = {};
+  slots.forEach(slot => {
+    const tb = slot.timeBlock || 'Unknown Time';
+    if (!timeGroups[tb]) timeGroups[tb] = [];
+    timeGroups[tb].push(slot);
+  });
+
+  function formatTimeBlock(tb) {
+    if (tb.includes('1899') || tb.includes('GMT')) {
+      try { return new Date(tb).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }); } catch(e) {}
+    }
+    return tb;
+  }
+
+  const sortedTimes = Object.keys(timeGroups).sort();
+  content.style.display = 'block';
+  content.innerHTML = sortedTimes.map(time => {
+    const slotList = timeGroups[time];
+    const rows = slotList.map(slot => {
+      const checkedIn = serveMap[slot.slotID];
+      const assignedStr = slot.assignedFamily ? `<span class="slot-assigned">(${slot.assignedFamily})</span>` : '';
+      const nameStr = checkedIn
+        ? `<span class="slot-checked">✓ ${checkedIn.displayName || 'Unknown'}</span>`
+        : `<span class="slot-empty">Empty</span> ${assignedStr}`;
+      const timeStr = checkedIn && checkedIn.checkInTime
+        ? new Date(checkedIn.checkInTime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '';
+      return `<div class="slot-row">
+        <div class="slot-name">${slot.slotName}</div>
+        <div>${nameStr}</div>
+        <div class="slot-time">${timeStr}</div>
+      </div>`;
+    }).join('');
+    const filledCount = slotList.filter(s => serveMap[s.slotID]).length;
+    const fillColor = filledCount === slotList.length ? '#1aa260' : filledCount === 0 ? '#c0392b' : '#b9740a';
+    return `<div class="slot-block">
+      <div class="slot-header"><span>${formatTimeBlock(time)}</span><span class="slot-fill" style="background:${fillColor};">${filledCount}/${slotList.length} filled</span></div>
+      ${rows}
+    </div>`;
+  }).join('');
+}
+
+document.getElementById('view-attendance').addEventListener('click', () => setView('attendance'));
+document.getElementById('view-serve').addEventListener('click', () => setView('serve'));
+document.getElementById('refresh-btn').addEventListener('click', loadData);
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.addEventListener('click', function() { setFilter(this.getAttribute('data-filter'), this); });
+});
+
+loadData();
+setInterval(loadData, 5 * 60 * 1000);
+</script>
+</body>
+</html>
