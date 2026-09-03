@@ -10705,9 +10705,13 @@ const video  = document.getElementById('video');
 const canvas = document.getElementById('canvas');
 const ctx    = canvas.getContext('2d', { willReadFrequently: true });
 
-const CROP_SIZE = 320;       // analysis canvas size (px) — small = fast
-const GUIDE_FRACTION = 0.55; // fraction of the smaller video dimension the on-screen guide box covers
-const SCAN_INTERVAL_MS = 120;
+const CROP_SIZE = 380;       // analysis canvas size (px) — bumped up from 320 so a
+                              // wider capture area (see GUIDE_FRACTION) doesn't lose
+                              // resolution on the QR's fine modules
+const GUIDE_FRACTION = 0.75; // fraction of the smaller video dimension that's actually
+                              // scanned — raised from 0.55 so the badge doesn't have to
+                              // be held dead-center in the guide box to be read
+const SCAN_INTERVAL_MS = 90; // was 120 — slightly more attempts per second
 
 canvas.width = CROP_SIZE;
 canvas.height = CROP_SIZE;
@@ -10719,6 +10723,21 @@ async function startCamera() {
     });
     video.srcObject = stream;
     await video.play();
+    // Ask the camera to keep re-focusing/re-exposing continuously instead of
+    // settling once and holding — this is what actually drives most of the
+    // "how many seconds until it reads" time on tablet cameras, far more than
+    // the decode step itself. Support varies by device/browser; if a track
+    // doesn't support these it's simply ignored, never an error.
+    try {
+      const track = stream.getVideoTracks()[0];
+      if (track && track.getCapabilities) {
+        const caps = track.getCapabilities();
+        const advanced = [];
+        if (caps.focusMode && caps.focusMode.includes('continuous')) advanced.push({ focusMode: 'continuous' });
+        if (caps.exposureMode && caps.exposureMode.includes('continuous')) advanced.push({ exposureMode: 'continuous' });
+        if (advanced.length) await track.applyConstraints({ advanced });
+      }
+    } catch(e) {}
     scanLoop();
   } catch (err) {
     showConnError('Camera error: ' + err.message);
@@ -10734,7 +10753,10 @@ function scanLoop() {
       const sy = Math.round((vh - cropSrc) / 2);
       ctx.drawImage(video, sx, sy, cropSrc, cropSrc, 0, 0, CROP_SIZE, CROP_SIZE);
       const imageData = ctx.getImageData(0, 0, CROP_SIZE, CROP_SIZE);
-      const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: 'dontInvert' });
+      // attemptBoth catches badges that read inverted under glare/reflection
+      // off the lamination — a bit more work per frame, but the interval
+      // above still leaves plenty of headroom.
+      const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: 'attemptBoth' });
       if (code && code.data) {
         handleScan(code.data.trim());
       }
