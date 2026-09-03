@@ -30,7 +30,11 @@
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { height: auto; background: var(--bg); }
-  body { font-family: -apple-system, "Segoe UI", Arial, sans-serif; background: var(--bg); color: var(--text); }
+  body {
+    font-family: -apple-system, "Segoe UI", Arial, sans-serif; background: var(--bg); color: var(--text);
+    display: flex; flex-direction: column; min-height: 100vh;
+  }
+  #fed-nav, #header { flex-shrink: 0; }
 
   #fed-nav {
     background: var(--red); padding: 8px 16px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
@@ -50,10 +54,10 @@
   .header-btn { padding: 7px 14px; background: #fff; color: var(--red-dark); border: none; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; white-space: nowrap; }
   .header-btn:hover { background: var(--panel-alt); }
 
-  #main { display: flex; width: 100%; flex-wrap: wrap; }
+  #main { display: flex; width: 100%; flex-wrap: wrap; flex: 1 1 auto; min-height: 0; }
 
   #camera-panel {
-    flex: 1 1 420px; position: relative; background: #10151c; display: flex; align-items: center; justify-content: center; height: 480px; overflow: hidden;
+    flex: 1 1 420px; position: relative; background: #10151c; display: flex; align-items: center; justify-content: center; min-height: 480px; overflow: hidden;
   }
   #video { width: 100%; height: 100%; object-fit: cover; }
   #scan-overlay {
@@ -63,7 +67,7 @@
   #scan-hint { position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%); font-size: 14px; color: rgba(255,255,255,0.85); white-space: nowrap; }
 
   #status-panel {
-    width: 400px; flex: 1 1 320px; display: flex; flex-direction: column; padding: 16px; gap: 12px; background: var(--bg); max-height: 480px; overflow-y: auto;
+    width: 400px; flex: 1 1 320px; display: flex; flex-direction: column; padding: 16px; gap: 12px; background: var(--bg); min-height: 480px; overflow-y: auto;
   }
 
   #confirmation {
