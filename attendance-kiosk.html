@@ -39,7 +39,12 @@
     font-family: -apple-system, "Segoe UI", Arial, sans-serif;
     background: var(--bg);
     color: var(--text);
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
   }
+
+  #fed-nav, #header { flex-shrink: 0; }
 
   a { color: inherit; }
 
@@ -113,11 +118,17 @@
   .header-btn.amber { background: var(--amber); color: #fff; }
   .header-btn.amber:hover { background: #a3660a; }
 
-  /* MAIN LAYOUT */
+  /* MAIN LAYOUT — fills whatever viewport height is left under the nav/header,
+     so there's no leftover gray strip and the status panel gets full height
+     to work with (no forced scrolling to reach Manual Check-In). On narrow
+     screens (see media query below) it drops back to natural, stacked
+     height so nothing looks stretched or empty. */
   #main {
     display: flex;
     width: 100%;
     flex-wrap: wrap;
+    flex: 1 1 auto;
+    min-height: 0;
   }
 
   /* CAMERA PANEL — stays dark; it's a live camera feed, not a UI surface */
@@ -128,7 +139,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    height: 480px;
+    min-height: 480px;
     overflow: hidden;
   }
 
@@ -173,7 +184,10 @@
     white-space: nowrap;
   }
 
-  /* STATUS PANEL — light */
+  /* STATUS PANEL — light. Stretches to match the camera panel's full height
+     (flexbox default cross-axis stretch) instead of being capped at 480px,
+     so Manual Check-In fits without scrolling on a normal-size screen.
+     overflow-y stays on as a safety net for unusually short viewports. */
   #status-panel {
     width: 380px;
     flex: 1 1 320px;
@@ -182,7 +196,7 @@
     padding: 16px;
     gap: 14px;
     background: var(--bg);
-    max-height: 480px;
+    min-height: 480px;
     overflow-y: auto;
   }
 
@@ -322,6 +336,18 @@
 
   #temp-results { max-height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; text-align: left; }
 
+  .temp-choice-row { display: flex; gap: 10px; margin-bottom: 6px; }
+  .temp-choice-btn {
+    flex: 1; padding: 20px 10px; border-radius: 10px; border: 2px solid var(--border);
+    background: var(--panel-alt); color: var(--text); font-size: 15px; font-weight: bold; cursor: pointer;
+  }
+  .temp-choice-btn:hover { border-color: var(--blue-accent); background: var(--bg); }
+  .temp-back-btn {
+    background: none; border: none; color: var(--blue-accent); font-size: 13px; font-weight: bold;
+    cursor: pointer; margin-bottom: 10px; text-align: left; padding: 0;
+  }
+  .temp-visit-note { font-size: 12px; color: var(--amber); font-weight: bold; margin-top: -4px; margin-bottom: 10px; text-align: left; }
+
   .modal-btn {
     padding: 11px;
     border: none;
@@ -358,7 +384,11 @@
   #bulk-status { background: var(--panel-alt); padding: 6px 16px; font-size: 12px; color: var(--text-soft); flex-shrink: 0; }
   #bulk-list { flex: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 6px; }
 
-  .bulk-family-card { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  /* flex-shrink: 0 is required here — without it, a flex item with
+     overflow:hidden loses its "don't shrink below your content" floor and
+     the browser squashes every card to a sliver to force the list to fit,
+     instead of letting #bulk-list scroll like it's supposed to. */
+  .bulk-family-card { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; flex-shrink: 0; }
   .bulk-family-header {
     display: flex; align-items: center; padding: 9px 10px; gap: 8px; cursor: pointer;
   }
@@ -437,15 +467,34 @@
   <div id="temp-box" class="fed-modal-box">
     <h2>Temporary Badge</h2>
     <div id="temp-badge-id"></div>
-    <p>Who is this badge for?</p>
-    <input type="text" id="temp-search" placeholder="Search by name..." autocomplete="off">
-    <div id="temp-results"></div>
-    <div id="temp-guest-section" style="display:none;margin-top:10px;padding-top:12px;border-top:1px solid var(--border);">
-      <p style="color:var(--amber);font-size:13px;font-weight:bold;">Not in system? Check in as a guest:</p>
-      <input type="text" id="temp-guest-name" placeholder="Guest full name..." autocomplete="off">
-      <input type="text" id="temp-guest-host" placeholder="Visiting / responsible family (required)..." autocomplete="off">
-      <button id="temp-guest-btn" class="modal-btn amber">Check In as Guest</button>
+
+    <!-- Step 1: who is this badge for? -->
+    <div id="temp-step-choice">
+      <p>Is this for a visitor, or an existing FED member?</p>
+      <div class="temp-choice-row">
+        <button type="button" class="temp-choice-btn" id="temp-choice-member">Existing<br>FED Member</button>
+        <button type="button" class="temp-choice-btn" id="temp-choice-visitor">Visitor</button>
+      </div>
     </div>
+
+    <!-- Step 2a: existing member search -->
+    <div id="temp-step-member" style="display:none;">
+      <button type="button" class="temp-back-btn" id="temp-back-member">&larr; Back</button>
+      <p>Search for the member's name:</p>
+      <input type="text" id="temp-search" placeholder="Search by name..." autocomplete="off">
+      <div id="temp-results"></div>
+    </div>
+
+    <!-- Step 2b: visitor details -->
+    <div id="temp-step-visitor" style="display:none;">
+      <button type="button" class="temp-back-btn" id="temp-back-visitor">&larr; Back</button>
+      <p>Visitor information:</p>
+      <input type="text" id="temp-guest-name" placeholder="Visitor full name..." autocomplete="off">
+      <input type="tel" id="temp-guest-phone" placeholder="Contact number (required)..." autocomplete="off">
+      <input type="text" id="temp-guest-host" placeholder="Responsible FED family (required)..." autocomplete="off">
+      <button id="temp-guest-btn" class="modal-btn amber">Check In Visitor</button>
+    </div>
+
     <button id="temp-close" class="modal-btn secondary">Cancel</button>
   </div>
 </div>
@@ -10754,7 +10803,11 @@ function showSuccess(data) {
 
   document.getElementById('conf-name').textContent   = data.displayName;
   document.getElementById('conf-status').textContent = isIn ? 'Checked IN' : 'Checked OUT';
-  document.getElementById('conf-detail').textContent = data.familyName || '';
+  let detail = data.familyName || '';
+  if (data.visitCount) {
+    detail += (detail ? ' · ' : '') + 'Visit #' + data.visitCount;
+  }
+  document.getElementById('conf-detail').textContent = detail;
 }
 
 function showConnError(msg) {
@@ -11055,11 +11108,26 @@ async function submitBulkChanges() {
 function openTempBadge(badgeID) {
   currentTempBadge = badgeID;
   document.getElementById('temp-badge-id').textContent = badgeID;
-  document.getElementById('temp-search').value = '';
-  document.getElementById('temp-results').innerHTML = '';
-  document.getElementById('temp-guest-section').style.display = 'none';
+  showTempStep('choice');
   document.getElementById('temp-modal').classList.add('show');
-  setTimeout(() => document.getElementById('temp-search').focus(), 100);
+}
+
+function showTempStep(step) {
+  document.getElementById('temp-step-choice').style.display  = step === 'choice'  ? 'block' : 'none';
+  document.getElementById('temp-step-member').style.display  = step === 'member'  ? 'block' : 'none';
+  document.getElementById('temp-step-visitor').style.display = step === 'visitor' ? 'block' : 'none';
+
+  if (step === 'member') {
+    document.getElementById('temp-search').value = '';
+    document.getElementById('temp-results').innerHTML = '';
+    setTimeout(() => document.getElementById('temp-search').focus(), 100);
+  }
+  if (step === 'visitor') {
+    document.getElementById('temp-guest-name').value = '';
+    document.getElementById('temp-guest-phone').value = '';
+    document.getElementById('temp-guest-host').value = '';
+    setTimeout(() => document.getElementById('temp-guest-name').focus(), 100);
+  }
 }
 
 function closeTemp() {
@@ -11070,28 +11138,28 @@ function closeTemp() {
 
 async function checkInGuest() {
   const name    = document.getElementById('temp-guest-name').value.trim();
+  const phone   = document.getElementById('temp-guest-phone').value.trim();
   const host    = document.getElementById('temp-guest-host').value.trim();
   const badgeID = currentTempBadge;
-  if (!name) { alert('Please enter the guest full name.'); return; }
-  if (!host) { alert('Please enter the visiting / responsible family.'); return; }
+  if (!name)  { alert('Please enter the visitor\'s full name.'); return; }
+  if (!phone) { alert('A contact number is required for visitors.'); return; }
+  if (!host)  { alert('Please enter the responsible FED family.'); return; }
 
   closeTemp();
   cooldown = true;
   try {
-    const res  = await fetch(WEBAPP_URL, { method: 'POST', body: JSON.stringify({ action: 'guestCheckIn', badgeID, displayName: name, hostFamily: host }) });
+    const res  = await fetch(WEBAPP_URL, { method: 'POST', body: JSON.stringify({ action: 'guestCheckIn', badgeID, displayName: name, phone, hostFamily: host }) });
     const data = await res.json();
     if (data.success) { showSuccess(data); addRecent(data); updateCount(); }
-    else { showConnError(data.error || 'Guest check-in failed'); }
+    else { showConnError(data.error || 'Visitor check-in failed'); }
   } catch(e) { showConnError('Connection error'); }
   setTimeout(() => { resetConfirmation(); cooldown = false; }, RESET_DELAY);
 }
 
 function searchTemp(query) {
   const q = query.trim().toLowerCase();
-  const guestSection = document.getElementById('temp-guest-section');
   if (q.length < 2) {
     document.getElementById('temp-results').innerHTML = '';
-    guestSection.style.display = 'none';
     return;
   }
   const matches = allPeople.filter(p =>
@@ -11109,8 +11177,9 @@ function searchTemp(query) {
     el.addEventListener('click', () => assignTemp(el.getAttribute('data-pid')));
   });
 
-  guestSection.style.display = matches.length === 0 ? 'block' : 'none';
-  if (matches.length === 0) document.getElementById('temp-guest-name').value = query;
+  if (matches.length === 0) {
+    results.innerHTML = '<div style="color:var(--text-soft);font-size:12px;padding:4px;">No matches. Use Back if this is a visitor instead.</div>';
+  }
 }
 
 async function assignTemp(personID) {
@@ -11136,6 +11205,10 @@ document.getElementById('manual-search').addEventListener('input', function() { 
 document.getElementById('temp-search').addEventListener('input', function() { searchTemp(this.value); });
 document.getElementById('temp-close').addEventListener('click', closeTemp);
 document.getElementById('temp-guest-btn').addEventListener('click', checkInGuest);
+document.getElementById('temp-choice-member').addEventListener('click', function() { showTempStep('member'); });
+document.getElementById('temp-choice-visitor').addEventListener('click', function() { showTempStep('visitor'); });
+document.getElementById('temp-back-member').addEventListener('click', function() { showTempStep('choice'); });
+document.getElementById('temp-back-visitor').addEventListener('click', function() { showTempStep('choice'); });
 document.getElementById('bgcheck-dismiss').addEventListener('click', dismissBGCheck);
 
 document.getElementById('bulk-btn').addEventListener('click', openBulkCheckIn);
