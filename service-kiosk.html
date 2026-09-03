@@ -10323,9 +10323,9 @@ const video  = document.getElementById('video');
 const canvas = document.getElementById('canvas');
 const ctx    = canvas.getContext('2d', { willReadFrequently: true });
 
-const CROP_SIZE = 320;
-const GUIDE_FRACTION = 0.55;
-const SCAN_INTERVAL_MS = 120;
+const CROP_SIZE = 380;       // bumped from 320 to keep resolution up despite the wider crop below
+const GUIDE_FRACTION = 0.75; // raised from 0.55 — badge doesn't need to be dead-center to read
+const SCAN_INTERVAL_MS = 90; // was 120 — slightly more attempts per second
 
 canvas.width = CROP_SIZE;
 canvas.height = CROP_SIZE;
@@ -10337,6 +10337,19 @@ async function startCamera() {
     });
     video.srcObject = stream;
     await video.play();
+    // Ask for continuous focus/exposure instead of settling once — this is
+    // usually the real driver of "how many seconds until it reads," more
+    // than the decode step. Ignored harmlessly where unsupported.
+    try {
+      const track = stream.getVideoTracks()[0];
+      if (track && track.getCapabilities) {
+        const caps = track.getCapabilities();
+        const advanced = [];
+        if (caps.focusMode && caps.focusMode.includes('continuous')) advanced.push({ focusMode: 'continuous' });
+        if (caps.exposureMode && caps.exposureMode.includes('continuous')) advanced.push({ exposureMode: 'continuous' });
+        if (advanced.length) await track.applyConstraints({ advanced });
+      }
+    } catch(e) {}
     scanLoop();
   } catch(err) {
     document.getElementById('conf-name').textContent = 'Camera error';
@@ -10353,7 +10366,7 @@ function scanLoop() {
       const sy = Math.round((vh - cropSrc) / 2);
       ctx.drawImage(video, sx, sy, cropSrc, cropSrc, 0, 0, CROP_SIZE, CROP_SIZE);
       const imageData = ctx.getImageData(0, 0, CROP_SIZE, CROP_SIZE);
-      const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: 'dontInvert' });
+      const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: 'attemptBoth' });
       if (code && code.data) handleScan(code.data.trim());
     } catch(e) {}
   }
