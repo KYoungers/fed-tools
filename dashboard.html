@@ -58,6 +58,30 @@
   #refresh-btn { padding: 7px 16px; background: var(--green); color: #fff; border: none; border-radius: 6px; font-size: 13px; font-weight: bold; cursor: pointer; }
   #refresh-btn:hover { background: #15804d; }
   #last-updated { font-size: 12px; color: var(--text-soft); }
+  #checkout-all-btn { padding: 7px 16px; background: var(--red); color: #fff; border: none; border-radius: 6px; font-size: 13px; font-weight: bold; cursor: pointer; }
+  #checkout-all-btn:hover { background: var(--red-dark); }
+
+  #checkout-modal {
+    position: fixed; inset: 0; background: rgba(20,30,40,0.55); z-index: 99999;
+    display: none; align-items: center; justify-content: center;
+  }
+  #checkout-modal.show { display: flex; }
+  #checkout-modal-box {
+    background: var(--panel); border-radius: 10px; padding: 24px; max-width: 380px; width: 90%;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.25);
+  }
+  #checkout-modal-box h3 { font-size: 17px; margin-bottom: 10px; color: var(--text); }
+  #checkout-modal-box p { font-size: 14px; color: var(--text-soft); margin-bottom: 18px; line-height: 1.5; }
+  .checkout-modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
+  .checkout-modal-actions button {
+    padding: 8px 16px; border: none; border-radius: 6px; font-size: 13px; font-weight: bold; cursor: pointer;
+  }
+  #checkout-cancel-btn { background: var(--panel-alt); color: var(--text); }
+  #checkout-cancel-btn:hover { background: var(--border); }
+  #checkout-confirm-btn { background: var(--red); color: #fff; }
+  #checkout-confirm-btn:hover { background: var(--red-dark); }
+  #checkout-confirm-btn:disabled { opacity: 0.6; cursor: default; }
+  #checkout-status { font-size: 12px; margin-top: 12px; color: var(--text-soft); min-height: 14px; }
 
   #fed-content { padding: 16px 20px; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
   .empty-state { text-align: center; padding: 60px; color: var(--text-soft); grid-column: 1/-1; font-size: 16px; }
@@ -80,6 +104,25 @@
   .slot-checked { color: var(--green); font-weight: bold; }
   .slot-assigned { font-size: 11px; color: var(--text-soft); }
   .slot-time { font-size: 11px; color: var(--text-soft); min-width: 50px; text-align: right; }
+
+  #print-report-btn { padding: 6px 18px; border-radius: 6px; border: none; background: var(--navy); color: #fff; font-size: 13px; font-weight: bold; cursor: pointer; }
+  #print-report-btn:hover { background: var(--navy-dark); }
+
+  .temp-section { grid-column: 1/-1; background: var(--panel); border-radius: 10px; border: 1px solid var(--border); overflow: hidden; margin-bottom: 16px; }
+  .temp-section-header { background: var(--navy); color: #fff; padding: 10px 16px; font-size: 15px; font-weight: bold; }
+  .temp-table { width: 100%; border-collapse: collapse; }
+  .temp-table th, .temp-table td { text-align: left; padding: 8px 14px; font-size: 13px; border-bottom: 1px solid var(--panel-alt); }
+  .temp-table th { color: var(--text-soft); font-size: 11px; text-transform: uppercase; background: var(--panel-alt); }
+  .temp-table td.temp-out { color: var(--text-soft); }
+  .temp-badge-tag { display: inline-block; background: var(--panel-alt); color: var(--navy-dark); padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: bold; }
+  .temp-visit-count { color: var(--amber); font-weight: bold; }
+  .temp-empty { padding: 20px; text-align: center; color: var(--text-soft); font-size: 13px; }
+
+  @media print {
+    #fed-nav, #fed-controls, #print-report-btn, #checkout-all-btn { display: none !important; }
+    body { background: #fff; }
+    .temp-section { border: 1px solid #999; box-shadow: none; }
+  }
 </style>
 </head>
 <body>
@@ -112,6 +155,7 @@
   <div class="view-toggle">
     <button class="toggle-btn active" id="view-attendance">Attendance</button>
     <button class="toggle-btn" id="view-serve">Serve Hours</button>
+    <button class="toggle-btn" id="view-temp">Temp Badges</button>
     <span class="sep">|</span>
     <span id="attendance-filters" style="display:inline-flex;gap:8px;flex-wrap:wrap;">
       <button class="filter-btn active" id="filter-all" data-filter="all">All</button>
@@ -123,6 +167,8 @@
   <div style="display:flex;align-items:center;gap:12px;">
     <span id="last-updated">Not yet loaded</span>
     <button id="refresh-btn">Refresh</button>
+    <button id="print-report-btn" style="display:none;">Print Report</button>
+    <button id="checkout-all-btn">Check Everyone Out</button>
   </div>
 </div>
 
@@ -130,11 +176,24 @@
   <div class="empty-state">Loading campus data...</div>
 </div>
 
+<div id="checkout-modal">
+  <div id="checkout-modal-box">
+    <h3>Check everyone out?</h3>
+    <p id="checkout-modal-text">This will check out everyone currently on campus.</p>
+    <div class="checkout-modal-actions">
+      <button id="checkout-cancel-btn">Cancel</button>
+      <button id="checkout-confirm-btn">Check Everyone Out</button>
+    </div>
+    <div id="checkout-status"></div>
+  </div>
+</div>
+
 <script>
 const WEBAPP = 'https://script.google.com/macros/s/AKfycbxQTULyjaWTitjvrbaTp3SNgrTggvkQHUuL_A5ps5naR6egVj3OGAUUL_o0sdZK9Bdo/exec';
 let people  = [];
 let slots   = [];
 let serveIn = [];
+let tempActivity = { members: [], visitors: [] };
 let filter  = 'all';
 let view    = 'attendance';
 
@@ -142,7 +201,10 @@ function setView(v) {
   view = v;
   document.getElementById('view-attendance').classList.toggle('active', v === 'attendance');
   document.getElementById('view-serve').classList.toggle('active', v === 'serve');
+  document.getElementById('view-temp').classList.toggle('active', v === 'temp');
   document.getElementById('attendance-filters').style.display = v === 'attendance' ? 'inline-flex' : 'none';
+  document.getElementById('print-report-btn').style.display = v === 'temp' ? 'inline-block' : 'none';
+  if (v === 'temp') loadTempBadgeData();
   render();
 }
 
@@ -172,8 +234,105 @@ async function loadData() {
   }
 }
 
+let outstandingBadges = {};
+
+async function loadTempBadgeData() {
+  try {
+    const [activityRes, liveRes] = await Promise.all([
+      fetch(WEBAPP + '?action=getTempBadgeActivity'),
+      fetch(WEBAPP + '?action=getTempBadges')
+    ]);
+    tempActivity = await activityRes.json();
+    outstandingBadges = (await liveRes.json()).tempBadges || {};
+  } catch(e) {
+    tempActivity = { members: [], visitors: [] };
+    outstandingBadges = {};
+  }
+  if (view === 'temp') render();
+}
+
 function render() {
-  view === 'serve' ? renderServe() : renderAttendance();
+  if (view === 'serve') renderServe();
+  else if (view === 'temp') renderTemp();
+  else renderAttendance();
+}
+
+function formatClock(t) {
+  if (!t) return '';
+  try { return new Date(t).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }); }
+  catch(e) { return t; }
+}
+
+function renderTemp() {
+  const content = document.getElementById('fed-content');
+  content.style.display = 'block';
+
+  const members  = tempActivity.members  || [];
+  const visitors = tempActivity.visitors || [];
+
+  const memberRows = members.length === 0
+    ? '<div class="temp-empty">No temp badges used by members today.</div>'
+    : `<table class="temp-table">
+        <thead><tr><th>Time</th><th>Name</th><th>Family</th><th>Badge</th><th>Direction</th></tr></thead>
+        <tbody>${members.map(m => `
+          <tr>
+            <td>${formatClock(m.time)}</td>
+            <td>${m.displayName}</td>
+            <td>${m.familyName}</td>
+            <td><span class="temp-badge-tag">${m.badgeID}</span></td>
+            <td class="${m.direction === 'OUT' ? 'temp-out' : ''}">${m.direction}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>`;
+
+  const visitorRows = visitors.length === 0
+    ? '<div class="temp-empty">No visitors logged today.</div>'
+    : `<table class="temp-table">
+        <thead><tr><th>Name</th><th>Phone</th><th>Responsible Family</th><th>Badge</th><th>In</th><th>Out</th><th>Visits</th></tr></thead>
+        <tbody>${visitors.map(v => `
+          <tr>
+            <td>${v.displayName}</td>
+            <td>${v.phone}</td>
+            <td>${v.hostFamily}</td>
+            <td><span class="temp-badge-tag">${v.badgeID}</span></td>
+            <td>${formatClock(v.checkInTime)}</td>
+            <td class="temp-out">${v.checkOutTime ? formatClock(v.checkOutTime) : '— not returned —'}</td>
+            <td class="temp-visit-count">${v.visitCount}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>`;
+
+  const outstandingIDs = Object.keys(outstandingBadges);
+  const outstandingRows = outstandingIDs.length === 0
+    ? '<div class="temp-empty">No temp badges are currently outstanding — all accounted for.</div>'
+    : `<table class="temp-table">
+        <thead><tr><th>Badge</th><th>Held By</th><th>Family / Host</th><th>Since</th></tr></thead>
+        <tbody>${outstandingIDs.map(badgeID => {
+          const b = outstandingBadges[badgeID];
+          const isGuest = b.personID === 'GUEST';
+          return `<tr>
+            <td><span class="temp-badge-tag" style="background:${isGuest ? 'var(--amber-bg,#fdf3e0)' : 'var(--panel-alt)'};">${badgeID}</span></td>
+            <td>${b.displayName}${isGuest ? ' <span style="font-size:10px;color:var(--amber);font-weight:bold;">VISITOR</span>' : ''}</td>
+            <td>${b.familyName}</td>
+            <td>${formatClock(b.assignedTime)}</td>
+          </tr>`;
+        }).join('')}
+        </tbody>
+      </table>`;
+
+  content.innerHTML = `
+    <div class="temp-section" style="border:2px solid var(--red);">
+      <div class="temp-section-header" style="background:var(--red);">Currently Outstanding Badges${outstandingIDs.length ? ' (' + outstandingIDs.length + ')' : ''}</div>
+      ${outstandingRows}
+    </div>
+    <div class="temp-section">
+      <div class="temp-section-header">FED Members — Temp Badge Use Today</div>
+      ${memberRows}
+    </div>
+    <div class="temp-section">
+      <div class="temp-section-header">Visitors Today</div>
+      ${visitorRows}
+    </div>`;
 }
 
 function renderAttendance() {
@@ -271,10 +430,50 @@ function renderServe() {
 
 document.getElementById('view-attendance').addEventListener('click', () => setView('attendance'));
 document.getElementById('view-serve').addEventListener('click', () => setView('serve'));
-document.getElementById('refresh-btn').addEventListener('click', loadData);
+document.getElementById('view-temp').addEventListener('click', () => setView('temp'));
+document.getElementById('refresh-btn').addEventListener('click', () => { loadData(); if (view === 'temp') loadTempBadgeData(); });
+document.getElementById('print-report-btn').addEventListener('click', () => window.print());
 document.querySelectorAll('.filter-btn').forEach(btn => {
   btn.addEventListener('click', function() { setFilter(this.getAttribute('data-filter'), this); });
 });
+
+// ── CHECK EVERYONE OUT ───────────────────────────────────────────────────
+function openCheckoutModal() {
+  const n = people.length;
+  document.getElementById('checkout-modal-text').textContent =
+    n === 0
+      ? 'No one is currently checked in on campus.'
+      : n + (n === 1 ? ' person is' : ' people are') + ' currently on campus. This will check all of them out at once. This cannot be undone.';
+  document.getElementById('checkout-status').textContent = '';
+  const confirmBtn = document.getElementById('checkout-confirm-btn');
+  confirmBtn.disabled = n === 0;
+  document.getElementById('checkout-modal').classList.add('show');
+}
+
+function closeCheckoutModal() {
+  document.getElementById('checkout-modal').classList.remove('show');
+}
+
+async function confirmCheckoutAll() {
+  const btn = document.getElementById('checkout-confirm-btn');
+  btn.disabled = true;
+  document.getElementById('checkout-status').textContent = 'Checking everyone out...';
+  try {
+    const res  = await fetch(WEBAPP, { method: 'POST', body: JSON.stringify({ action: 'checkOutAll' }) });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    document.getElementById('checkout-status').textContent = 'Done — ' + (data.count || 0) + ' checked out.';
+    await loadData();
+    setTimeout(closeCheckoutModal, 1200);
+  } catch (e) {
+    document.getElementById('checkout-status').textContent = 'Error: ' + e.message;
+    btn.disabled = false;
+  }
+}
+
+document.getElementById('checkout-all-btn').addEventListener('click', openCheckoutModal);
+document.getElementById('checkout-cancel-btn').addEventListener('click', closeCheckoutModal);
+document.getElementById('checkout-confirm-btn').addEventListener('click', confirmCheckoutAll);
 
 loadData();
 setInterval(loadData, 5 * 60 * 1000);
