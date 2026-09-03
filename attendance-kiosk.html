@@ -131,15 +131,22 @@
     min-height: 0;
   }
 
-  /* CAMERA PANEL — stays dark; it's a live camera feed, not a UI surface */
+  /* CAMERA PANEL — stays dark; it's a live camera feed, not a UI surface.
+     Kept compact on purpose: the scanner only ever reads the 220x220 guide
+     box in the middle (see the crop-to-guide logic in the scan loop below),
+     so a large camera preview was just empty space. A small box here means
+     the status panel — and the on-screen keyboard when it pops up — gets
+     the room instead, especially in landscape on a tablet. */
   #camera-panel {
-    flex: 1 1 420px;
+    flex: 0 0 300px;
+    width: 300px;
     position: relative;
     background: #10151c;
     display: flex;
     align-items: center;
     justify-content: center;
-    min-height: 480px;
+    min-height: 300px;
+    max-height: 340px;
     overflow: hidden;
   }
 
