@@ -413,7 +413,7 @@ function renderServe() {
       let nameStr, timeStr;
       if (served) {
         const label = served.stillIn ? '✓ ' : '✓ ' + '(done) ';
-        nameStr = `<span class="slot-checked">${label}${served.displayName || 'Unknown'}</span>`;
+        nameStr = `<span class="slot-checked">${label}${served.displayName || 'Unknown'}</span> ${assignedStr}`;
         timeStr = served.checkInTime ? new Date(served.checkInTime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '';
         if (!served.stillIn && served.checkOutTime) {
           timeStr += ' – ' + new Date(served.checkOutTime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
