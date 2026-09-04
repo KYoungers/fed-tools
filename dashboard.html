@@ -192,7 +192,7 @@
 const WEBAPP = 'https://script.google.com/macros/s/AKfycbxQTULyjaWTitjvrbaTp3SNgrTggvkQHUuL_A5ps5naR6egVj3OGAUUL_o0sdZK9Bdo/exec';
 let people  = [];
 let slots   = [];
-let serveIn = [];
+let serveActivity = []; // everyone who served a slot at any point today — see getServeActivityToday
 let tempActivity = { members: [], visitors: [] };
 let filter  = 'all';
 let view    = 'attendance';
@@ -220,11 +220,11 @@ async function loadData() {
     const [attendRes, slotsRes, serveRes] = await Promise.all([
       fetch(WEBAPP + '?action=getCurrentlyIn'),
       fetch(WEBAPP + '?action=getSlots'),
-      fetch(WEBAPP + '?action=getServeCheckedIn')
+      fetch(WEBAPP + '?action=getServeActivityToday')
     ]);
     people  = (await attendRes.json()).people || [];
     slots   = (await slotsRes.json()).slots   || [];
-    serveIn = (await serveRes.json()).active  || [];
+    serveActivity = (await serveRes.json()).activity || [];
     render();
     document.getElementById('last-updated').textContent =
       'Updated: ' + new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
@@ -384,8 +384,10 @@ function renderServe() {
     return;
   }
 
+  // Keyed by slotID — anyone who served this slot at any point today, whether
+  // they're still there or already checked out. See getServeActivityToday.
   const serveMap = {};
-  serveIn.forEach(s => { serveMap[s.slotID] = s; });
+  serveActivity.forEach(s => { serveMap[s.slotID] = s; });
 
   const timeGroups = {};
   slots.forEach(slot => {
@@ -406,13 +408,20 @@ function renderServe() {
   content.innerHTML = sortedTimes.map(time => {
     const slotList = timeGroups[time];
     const rows = slotList.map(slot => {
-      const checkedIn = serveMap[slot.slotID];
+      const served = serveMap[slot.slotID];
       const assignedStr = slot.assignedFamily ? `<span class="slot-assigned">(${slot.assignedFamily})</span>` : '';
-      const nameStr = checkedIn
-        ? `<span class="slot-checked">✓ ${checkedIn.displayName || 'Unknown'}</span>`
-        : `<span class="slot-empty">Empty</span> ${assignedStr}`;
-      const timeStr = checkedIn && checkedIn.checkInTime
-        ? new Date(checkedIn.checkInTime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '';
+      let nameStr, timeStr;
+      if (served) {
+        const label = served.stillIn ? '✓ ' : '✓ ' + '(done) ';
+        nameStr = `<span class="slot-checked">${label}${served.displayName || 'Unknown'}</span>`;
+        timeStr = served.checkInTime ? new Date(served.checkInTime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '';
+        if (!served.stillIn && served.checkOutTime) {
+          timeStr += ' – ' + new Date(served.checkOutTime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+        }
+      } else {
+        nameStr = `<span class="slot-empty">Empty</span> ${assignedStr}`;
+        timeStr = '';
+      }
       return `<div class="slot-row">
         <div class="slot-name">${slot.slotName}</div>
         <div>${nameStr}</div>
@@ -422,7 +431,7 @@ function renderServe() {
     const filledCount = slotList.filter(s => serveMap[s.slotID]).length;
     const fillColor = filledCount === slotList.length ? '#1aa260' : filledCount === 0 ? '#c0392b' : '#b9740a';
     return `<div class="slot-block">
-      <div class="slot-header"><span>${formatTimeBlock(time)}</span><span class="slot-fill" style="background:${fillColor};">${filledCount}/${slotList.length} filled</span></div>
+      <div class="slot-header"><span>${formatTimeBlock(time)}</span><span class="slot-fill" style="background:${fillColor};">${filledCount}/${slotList.length} filled today</span></div>
       ${rows}
     </div>`;
   }).join('');
