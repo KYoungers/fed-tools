@@ -123,6 +123,41 @@
     body { background: #fff; }
     .temp-section { border: 1px solid #999; box-shadow: none; }
   }
+
+  /* ── Reports view (scoped so it can't touch the other views) ── */
+  #rp-root { padding: 0; }
+  #rp-root .rp-meta { font-size: 12px; color: var(--text-soft); margin: 0 0 10px; }
+  #rp-root .rp-tabs, #rp-root .sub { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 12px; }
+  #rp-root .rp-tabs button { border: 1px solid var(--navy); background: #fff; color: var(--navy-dark); padding: 7px 16px; font-size: 13px; font-weight: bold; cursor: pointer; border-radius: 6px; }
+  #rp-root .rp-tabs button.on { background: var(--navy); color: #fff; }
+  #rp-root .sub button { border: 1px solid var(--border); background: #fff; padding: 5px 12px; font-size: 12px; cursor: pointer; border-radius: 14px; color: var(--text); }
+  #rp-root .sub button.on { background: var(--red); border-color: var(--red); color: #fff; }
+  #rp-root .bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; margin: 0 0 12px; background: #fff; padding: 10px; border: 1px solid var(--border); border-radius: 8px; }
+  #rp-root .bar label { display: block; font-size: 11px; color: var(--text-soft); margin-bottom: 2px; }
+  #rp-root .bar input { padding: 6px 8px; font-size: 14px; border: 1px solid #b8c6d4; border-radius: 4px; }
+  #rp-root .go { background: var(--navy); color: #fff; border: 0; padding: 8px 18px; font-size: 13px; font-weight: bold; border-radius: 6px; cursor: pointer; }
+  #rp-root .wrap { overflow-x: auto; }
+  #rp-root table { border-collapse: collapse; width: 100%; background: #fff; margin: 6px 0 14px; border: 1px solid var(--border); }
+  #rp-root th { background: var(--panel-alt); color: var(--text-soft); text-align: left; padding: 8px 12px; font-size: 11px; text-transform: uppercase; }
+  #rp-root td { padding: 8px 12px; border-bottom: 1px solid var(--panel-alt); vertical-align: top; font-size: 13px; }
+  #rp-root .cards { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 12px; }
+  #rp-root .card { background: #fff; border: 1px solid var(--border); border-left: 4px solid var(--navy); border-radius: 6px; padding: 8px 14px; min-width: 120px; }
+  #rp-root .card b { display: block; font-size: 22px; color: var(--navy-dark); }
+  #rp-root .card span { font-size: 12px; color: var(--text-soft); }
+  #rp-root .pill { display: inline-block; padding: 1px 9px; border-radius: 10px; font-size: 11px; font-weight: bold; color: #fff; background: #8a97a5; }
+  #rp-root .pill.red { background: var(--red); } #rp-root .pill.green { background: var(--green); } #rp-root .pill.amber { background: var(--amber); } #rp-root .pill.navy { background: var(--navy); }
+  #rp-root .note { background: #fff4e5; border-left: 4px solid var(--red); padding: 8px 12px; margin: 8px 0; font-size: 13px; border-radius: 4px; }
+  #rp-root .muted { color: var(--text-soft); font-size: 12px; }
+  #rp-root h3 { color: var(--navy-dark); border-bottom: 2px solid var(--red); padding-bottom: 3px; margin: 18px 0 6px; font-size: 16px; }
+  #rp-root .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 8px; }
+  #rp-root .badge { background: #fff; border: 1px solid var(--border); border-top: 4px solid var(--green); border-radius: 6px; padding: 8px 10px; font-size: 12px; }
+  #rp-root .badge.out { border-top-color: var(--amber); } #rp-root .badge.overdue { border-top-color: var(--red); background: #fff3f1; }
+  #rp-root .badge b { font-size: 14px; color: var(--navy-dark); display: block; }
+  #rp-root .err { color: var(--red); padding: 12px; background: #fff; border: 1px solid var(--red); border-radius: 6px; }
+  #rp-root .loading { color: var(--text-soft); padding: 12px; }
+  #rp-root details { background: #fff; border: 1px solid var(--border); border-radius: 6px; margin: 6px 0; padding: 8px 12px; }
+  #rp-root summary { cursor: pointer; font-size: 13px; }
+  @media print { #rp-root .bar, #rp-root .rp-tabs, #rp-root .sub { display: none !important; } }
 </style>
 </head>
 <body>
@@ -156,6 +191,7 @@
     <button class="toggle-btn active" id="view-attendance">Attendance</button>
     <button class="toggle-btn" id="view-serve">Serve Hours</button>
     <button class="toggle-btn" id="view-temp">Temp Badges</button>
+    <button class="toggle-btn" id="view-reports">Reports</button>
     <span class="sep">|</span>
     <span id="attendance-filters" style="display:inline-flex;gap:8px;flex-wrap:wrap;">
       <button class="filter-btn active" id="filter-all" data-filter="all">All</button>
@@ -202,9 +238,11 @@ function setView(v) {
   document.getElementById('view-attendance').classList.toggle('active', v === 'attendance');
   document.getElementById('view-serve').classList.toggle('active', v === 'serve');
   document.getElementById('view-temp').classList.toggle('active', v === 'temp');
+  document.getElementById('view-reports').classList.toggle('active', v === 'reports');
   document.getElementById('attendance-filters').style.display = v === 'attendance' ? 'inline-flex' : 'none';
   document.getElementById('print-report-btn').style.display = v === 'temp' ? 'inline-block' : 'none';
   if (v === 'temp') loadTempBadgeData();
+  if (v === 'reports') { RP.open(); return; }
   render();
 }
 
@@ -252,9 +290,37 @@ async function loadTempBadgeData() {
 }
 
 function render() {
+  if (view === 'reports') return; // reports draw themselves; don't wipe them on the 5-minute refresh
   if (view === 'serve') renderServe();
   else if (view === 'temp') renderTemp();
   else renderAttendance();
+}
+
+// Reads 'yyyy-mm-dd H:mm:ss' text as local time, or a full ISO/Date value as-is.
+function parseStamp(t) {
+  if (!t) return null;
+  const s = String(t).trim();
+  const m = s.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+  const d = m ? new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +(m[6] || 0)) : new Date(s);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+// 'Fri Oct 9, 8:44 AM'
+function formatSince(t) {
+  const d = parseStamp(t);
+  if (!d) return t ? String(t) : '';
+  return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) + ', ' +
+         d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+}
+
+// Whole calendar days between the stamp and today (0 = today).
+function daysOutFrom(t) {
+  const d = parseStamp(t);
+  if (!d) return null;
+  const a = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const now = new Date();
+  const b = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  return Math.round((b - a) / 86400000);
 }
 
 function formatClock(t) {
@@ -302,7 +368,12 @@ function renderTemp() {
         </tbody>
       </table>`;
 
-  const outstandingIDs = Object.keys(outstandingBadges);
+  // Oldest first, so anything that has been out for days is at the top.
+  const outstandingIDs = Object.keys(outstandingBadges).sort((a, b) => {
+    const da = parseStamp(outstandingBadges[a].assignedTime), db = parseStamp(outstandingBadges[b].assignedTime);
+    return (da ? da.getTime() : 0) - (db ? db.getTime() : 0);
+  });
+  const staleCount = outstandingIDs.filter(id => (daysOutFrom(outstandingBadges[id].assignedTime) || 0) > 0).length;
   const outstandingRows = outstandingIDs.length === 0
     ? '<div class="temp-empty">No temp badges are currently outstanding — all accounted for.</div>'
     : `<table class="temp-table">
@@ -310,11 +381,15 @@ function renderTemp() {
         <tbody>${outstandingIDs.map(badgeID => {
           const b = outstandingBadges[badgeID];
           const isGuest = b.personID === 'GUEST';
+          const days = daysOutFrom(b.assignedTime);
+          const dayTag = days === null ? '' : days > 0
+            ? ` <span style="font-size:11px;font-weight:bold;color:#fff;background:var(--red);padding:1px 8px;border-radius:10px;">${days} day${days === 1 ? '' : 's'} out</span>`
+            : ' <span style="font-size:11px;color:var(--text-soft);">today</span>';
           return `<tr>
             <td><span class="temp-badge-tag" style="background:${isGuest ? 'var(--amber-bg,#fdf3e0)' : 'var(--panel-alt)'};">${badgeID}</span></td>
             <td>${b.displayName}${isGuest ? ' <span style="font-size:10px;color:var(--amber);font-weight:bold;">VISITOR</span>' : ''}</td>
             <td>${b.familyName}</td>
-            <td>${formatClock(b.assignedTime)}</td>
+            <td>${formatSince(b.assignedTime)}${dayTag}</td>
           </tr>`;
         }).join('')}
         </tbody>
@@ -322,7 +397,7 @@ function renderTemp() {
 
   content.innerHTML = `
     <div class="temp-section" style="border:2px solid var(--red);">
-      <div class="temp-section-header" style="background:var(--red);">Currently Outstanding Badges${outstandingIDs.length ? ' (' + outstandingIDs.length + ')' : ''}</div>
+      <div class="temp-section-header" style="background:var(--red);">Currently Outstanding Badges${outstandingIDs.length ? ' (' + outstandingIDs.length + (staleCount ? ', ' + staleCount + ' from earlier days' : '') + ')' : ''}</div>
       ${outstandingRows}
     </div>
     <div class="temp-section">
@@ -440,7 +515,8 @@ function renderServe() {
 document.getElementById('view-attendance').addEventListener('click', () => setView('attendance'));
 document.getElementById('view-serve').addEventListener('click', () => setView('serve'));
 document.getElementById('view-temp').addEventListener('click', () => setView('temp'));
-document.getElementById('refresh-btn').addEventListener('click', () => { loadData(); if (view === 'temp') loadTempBadgeData(); });
+document.getElementById('view-reports').addEventListener('click', () => setView('reports'));
+document.getElementById('refresh-btn').addEventListener('click', () => { loadData(); if (view === 'temp') loadTempBadgeData(); if (view === 'reports') RP.refresh(); });
 document.getElementById('print-report-btn').addEventListener('click', () => window.print());
 document.querySelectorAll('.filter-btn').forEach(btn => {
   btn.addEventListener('click', function() { setFilter(this.getAttribute('data-filter'), this); });
@@ -486,6 +562,231 @@ document.getElementById('checkout-confirm-btn').addEventListener('click', confir
 
 loadData();
 setInterval(loadData, 5 * 60 * 1000);
+
+// ══ REPORTS VIEW ═════════════════════════════════════════════════════════
+// Reads from the separate FED Reports script (read-only). Paste its web app URL below.
+(function () {
+var REPORTS_API = 'https://script.google.com/macros/s/AKfycbzxpLInzbqrbhWupEbmIIvR-NcLI-WZT-Zc-AadMmH-6aO8VfTMzkB-rUr4FmqZYCoE/exec';
+var TABS = [
+  { id:'temp', label:'Temp Badges', subs:[['board','Badge board'],['out','Out now'],['badge','By badge'],['person','By person']] },
+  { id:'guests', label:'Guests', subs:[] },
+  { id:'att', label:'Attendance', subs:[['day','One day'],['range','Date range'],['family','By family'],['person','By person']] },
+  { id:'bg', label:'Background Checks', subs:[] }
+];
+var state = { tab:'temp', sub:{ temp:'board', att:'day' }, info:null, seq:0 };
+
+function esc(v){ return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function $(id){ return document.getElementById(id); }
+function clock(ts){ var m=String(ts||'').match(/ (\d{2}):(\d{2})/); if(!m) return ''; var h=+m[1],ap=h>=12?'PM':'AM'; h=h%12||12; return h+':'+m[2]+' '+ap; }
+function dfmt(d){ var m=String(d||'').match(/^(\d{4})-(\d{2})-(\d{2})/); return m?(+m[2])+'/'+(+m[3])+'/'+m[1]:esc(d||''); }
+function pill(t,c){ return '<span class="pill '+(c||'')+'">'+esc(t)+'</span>'; }
+function tbl(heads, rows){
+  if(!rows.length) return '<p class="muted">Nothing to show.</p>';
+  return '<div class="wrap"><table><tr>'+heads.map(function(h){return '<th>'+esc(h)+'</th>';}).join('')+'</tr>'+
+    rows.map(function(r){return '<tr>'+r.map(function(c){return '<td>'+c+'</td>';}).join('')+'</tr>';}).join('')+'</table></div>';
+}
+function cards(list){ return '<div class="cards">'+list.map(function(c){return '<div class="card"><b>'+esc(c[0])+'</b><span>'+esc(c[1])+'</span></div>';}).join('')+'</div>'; }
+
+function api(params){
+  if(REPORTS_API.indexOf('PASTE_')===0) return Promise.reject(new Error('The reports web app URL has not been added to dashboard.html yet.'));
+  var qs = Object.keys(params).map(function(k){return encodeURIComponent(k)+'='+encodeURIComponent(params[k]);}).join('&');
+  return fetch(REPORTS_API+'?'+qs).then(function(r){return r.json();}).then(function(j){ if(!j.ok) throw new Error(j.error||'Report failed'); return j; });
+}
+function show(html){ $('rp-main').innerHTML = html; }
+function run(target, params, render){
+  var my = ++state.seq;
+  target.innerHTML = '<div class="loading">Loading...</div>';
+  api(params).then(function(j){ if(my===state.seq) target.innerHTML = render(j); })
+    .catch(function(e){ if(my===state.seq) target.innerHTML = '<div class="err">'+esc(e.message)+'</div>'; });
+}
+
+// ─── navigation ─────────────────────────────────────────────────────────────
+function drawNav(){
+  $('rp-nav').innerHTML = TABS.map(function(t){ return '<button class="'+(state.tab===t.id?'on':'')+'" data-tab="'+t.id+'">'+esc(t.label)+'</button>'; }).join('');
+  Array.prototype.forEach.call($('rp-nav').querySelectorAll('button'), function(b){ b.onclick=function(){ state.tab=b.getAttribute('data-tab'); drawPage(); }; });
+}
+function drawPage(){
+  drawNav();
+  var t = TABS.filter(function(x){return x.id===state.tab;})[0];
+  var html = '';
+  if(t.subs.length){
+    html += '<div class="sub">'+t.subs.map(function(s){ return '<button class="'+(state.sub[t.id]===s[0]?'on':'')+'" data-sub="'+s[0]+'">'+esc(s[1])+'</button>'; }).join('')+'</div>';
+  }
+  html += '<div id="rp-body"></div>';
+  show(html);
+  Array.prototype.forEach.call($('rp-main').querySelectorAll('.sub button'), function(b){ b.onclick=function(){ state.sub[t.id]=b.getAttribute('data-sub'); drawPage(); }; });
+  var body = $('rp-body');
+  if(t.id==='temp') tempView(body);
+  else if(t.id==='guests') guestsView(body);
+  else if(t.id==='att') attView(body);
+  else if(t.id==='bg') bgView(body);
+}
+function searchBar(body, fields, onGo){
+  body.innerHTML = '<div class="bar">'+fields.map(function(f){
+    return '<div><label>'+esc(f.label)+'</label><input id="rp-f-'+f.id+'" type="'+(f.type||'text')+'" value="'+esc(f.value||'')+'" placeholder="'+esc(f.ph||'')+'" size="'+(f.size||20)+'"></div>';
+  }).join('')+'<button class="go" id="rp-go">Run</button></div><div id="rp-res"></div>';
+  function go(){ var v={}; fields.forEach(function(f){ v[f.id]=$('rp-f-'+f.id).value; }); onGo(v, $('rp-res')); }
+  $('rp-go').onclick = go;
+  fields.forEach(function(f){ $('rp-f-'+f.id).onkeydown=function(e){ if(e.key==='Enter') go(); }; });
+  return go;
+}
+
+function statusPill(s){
+  var map={ returned:['Returned','green'], 'name-checkout':['Out by name, badge not scanned','amber'], reassigned:['Reassigned before scan','amber'], outstanding:['Not returned','red'] };
+  var m=map[s]||[s,'']; return pill(m[0],m[1]);
+}
+function held(min){ if(min==null) return ''; if(min<60) return min+' min'; var h=Math.floor(min/60); return h+' hr '+(min%60)+' min'; }
+function histRows(items, withBadge){
+  return items.map(function(t){
+    var r=[]; if(withBadge) r.push('<b>'+esc(t.badge)+'</b>');
+    r.push(esc(t.name)+(t.kind==='Guest'?' '+pill('Guest','navy'):''), esc(t.family), dfmt(t.date), esc(clock(t.assignedAt)),
+      t.returnedAt?esc(dfmt(t.returnedAt)+' '+clock(t.returnedAt)):'', esc(held(t.heldMinutes)),
+      statusPill(t.status)+(t.overdue?' '+pill(t.daysOut+' days','red'):'')+(t.note?'<div class="muted">'+esc(t.note)+'</div>':''));
+    return r;
+  });
+}
+function tempView(body){
+  var sub = state.sub.temp;
+  if(sub==='board'){
+    run(body,{r:'tempBoard'},function(j){
+      var out=j.board.filter(function(b){return b.state!=='available';}), dis=j.board.filter(function(b){return b.liveTableDisagrees;});
+      var h = cards([[j.board.length,'badges'],[out.length,'out now'],[out.filter(function(b){return b.state==='overdue';}).length,'overdue']]);
+      if(dis.length) h+='<div class="note">The live Temp_Badges tab disagrees with the scan history for: <b>'+dis.map(function(b){return esc(b.badge);}).join(', ')+'</b>. The board below is built from the scan history.</div>';
+      h+='<div class="grid">'+j.board.map(function(b){
+        return '<div class="badge '+(b.state==='available'?'':b.state)+'"><b>'+esc(b.badge)+'</b>'+
+          (b.state==='available'?'<span class="muted">Available</span>':esc(b.holder)+'<div class="muted">'+esc(b.holderFamily)+'<br>since '+dfmt(b.since)+(b.daysOut?' ('+b.daysOut+' days)':'')+'</div>')+
+          '<div class="muted">Used '+b.uses+'x'+(b.lastUsed?', last '+dfmt(b.lastUsed):'')+'</div></div>';
+      }).join('')+'</div>';
+      return h;
+    });
+  } else if(sub==='out'){
+    run(body,{r:'tempOut'},function(j){
+      return cards([[j.items.length,'not returned']])+tbl(['Badge','Who','Family','Date','Time out','Returned','Held','Status'],histRows(j.items,true));
+    });
+  } else if(sub==='badge'){
+    var go=searchBar(body,[{id:'badge',label:'Badge number',ph:'e.g. 14',size:8}],function(v,res){
+      if(!v.badge.trim()){ res.innerHTML='<p class="muted">Enter a badge number.</p>'; return; }
+      run(res,{r:'tempByBadge',badge:v.badge},function(j){
+        return '<h3>'+esc(j.badge)+' history ('+j.items.length+' uses)</h3>'+tbl(['Who','Family','Date','Time out','Returned','Held','Status'],histRows(j.items,false));
+      });
+    });
+  } else {
+    searchBar(body,[{id:'q',label:'Person or family name',ph:'name',size:26}],function(v,res){
+      run(res,{r:'tempByPerson',q:v.q},function(j){
+        return tbl(['Name','Family','Times used','Not scanned back','Badges','Dates','Last used'],j.people.map(function(g){
+          return [esc(g.names.join(' / '))+(g.kind==='Guest'?' '+pill('Guest','navy'):''), esc(g.family), g.uses, g.notScanned?pill(g.notScanned,'red'):'0',
+            esc(g.badges.join(', ')), esc(g.dates.map(dfmt).join(', ')), dfmt(g.lastUsed)];
+        }));
+      });
+    })();
+  }
+}
+
+// ─── guests ─────────────────────────────────────────────────────────────────
+function guestsView(body){
+  run(body,{r:'guests'},function(j){
+    var rep=j.groups.filter(function(g){return g.flag!=='new';});
+    var h=cards([[j.groups.length,'households / people'],[rep.length,'repeat visitors (' + j.repeatAt + '+ visits)'],[j.excludedTestRows,'test rows left out']]);
+    h+='<h3>Repeat visitors</h3>'+guestTable(rep);
+    h+='<h3>All guests</h3>'+guestTable(j.groups);
+    return h;
+  });
+}
+function guestTable(groups){
+  if(!groups.length) return '<p class="muted">Nothing to show.</p>';
+  return groups.map(function(g){
+    var flag=g.flag==='frequent'?pill('Frequent','red'):g.flag==='repeat'?pill('Repeat','amber'):'';
+    var why=g.groupedBecause.length?' <span class="muted">Grouped by: '+esc(g.groupedBecause.join('; '))+'</span>':'';
+    return '<details><summary><b>'+esc(g.names[0])+'</b> '+(g.names.length>1?'<span class="muted">(also: '+esc(g.names.slice(1).join(', '))+')</span> ':'')+
+      '&nbsp;'+g.visitCount+' visit'+(g.visitCount===1?'':'s')+' '+flag+' <span class="muted">last '+dfmt(g.lastDate)+' | host: '+esc(g.hosts.join(' / '))+'</span></summary>'+
+      '<div class="muted">Phones: '+esc(g.phones.join(', ')||'none')+why+(g.manyBadgesOneDay?' | more than one badge handed out on a single day':'')+'</div>'+
+      tbl(['Date','Name used','Host','Badge','In','Out'],g.visits.map(function(v){
+        return [dfmt(v.date),esc(v.names.join(' / ')),esc(v.host),esc(v.badges.join(', ')),esc(clock(v.checkIn)),v.stillOut?pill('no check-out','red'):esc(clock(v.checkOut))];
+      }))+'</details>';
+  }).join('');
+}
+
+// ─── attendance ─────────────────────────────────────────────────────────────
+function attView(body){
+  var sub=state.sub.att, last=(state.info&&state.info.lastClassDay)||'';
+  if(sub==='day'){
+    searchBar(body,[{id:'date',label:'Date',type:'date',value:last,size:12}],function(v,res){
+      run(res,{r:'attDay',date:v.date},function(j){
+        var t=j.totals;
+        var h=cards([[t.familiesPresent+' / '+t.activeFamilies,'families'],[t.people,'people'],[t.students,'students'],[t.adults,'adults'],[t.guests,'guests'],[t.stillOnCampus,'no check-out']]);
+        if(t.outOnly) h+='<div class="note">'+t.outOnly+' people have a check-out but no check-in that day.</div>';
+        h+='<h3>Checked in ('+j.present.length+')</h3>'+tbl(['Family','Name','Type','First in','Last scan'],j.present.map(function(p){
+          return [esc(p.familyName),esc(p.name),esc(p.type),esc(p.firstIn),esc(p.lastScan)+(p.onCampus?'':' (left)')];}));
+        h+='<h3>Families with no check-in ('+j.absentFamilies.length+')</h3>'+tbl(['Family','ID'],j.absentFamilies.map(function(f){return [esc(f.familyName),esc(f.familyID)];}));
+        if(j.outOnly.length) h+='<h3>Check-out only</h3>'+tbl(['Name','Family','Type','At'],j.outOnly.map(function(p){return [esc(p.name),esc(p.familyName),esc(p.type),esc(p.at)];}));
+        h+='<h3>Guests ('+j.guests.length+')</h3>'+tbl(['Guest','Host','Badge','In','Out'],j.guests.map(function(g){return [esc(g.name),esc(g.host),esc(g.badge),esc(g.checkIn),esc(g.checkOut)||pill('none','red')];}));
+        return h;
+      });
+    })();
+  } else if(sub==='range'){
+    searchBar(body,[{id:'from',label:'From',type:'date',size:12},{id:'to',label:'To',type:'date',size:12}],function(v,res){
+      run(res,{r:'attRange',from:v.from,to:v.to},function(j){
+        return tbl(['Date','Families','Absent families','People','Students','Adults','Guests'],j.days.map(function(d){
+          return [dfmt(d.date),d.familiesPresent+' of '+d.activeFamilies,d.absentFamilies,d.people,d.students,d.adults,d.guests];}));
+      });
+    })();
+  } else if(sub==='family'){
+    searchBar(body,[{id:'q',label:'Family name or ID',ph:'e.g. Smith',size:26}],function(v,res){
+      if(!v.q.trim()){ res.innerHTML='<p class="muted">Enter a family name or ID.</p>'; return; }
+      run(res,{r:'attFamily',q:v.q},function(j){
+        if(!j.families.length) return '<p class="muted">No family matched.</p>';
+        return j.families.map(function(f){
+          return '<h3>'+esc(f.familyName)+' <span class="muted">'+esc(f.familyID)+'</span></h3><div class="muted">'+esc(f.members.join(', '))+'</div>'+
+            cards([[f.attended.length+' / '+f.classDays,'class days attended'],[f.missed.length,'missed']])+
+            tbl(['Date','Who checked in'],f.attended.map(function(a){return [dfmt(a.date),esc(a.members.join(', '))];}))+
+            (f.missed.length?'<p><b>Missed:</b> '+esc(f.missed.map(dfmt).join(', '))+'</p>':'');
+        }).join('');
+      });
+    });
+  } else {
+    searchBar(body,[{id:'q',label:'Person name or ID',ph:'e.g. Amy',size:26}],function(v,res){
+      if(!v.q.trim()){ res.innerHTML='<p class="muted">Enter a name or ID.</p>'; return; }
+      run(res,{r:'attPerson',q:v.q},function(j){
+        if(!j.persons.length) return '<p class="muted">No one matched.</p>';
+        return j.persons.map(function(p){
+          return '<h3>'+esc(p.name)+' <span class="muted">'+esc(p.familyName)+' | '+esc(p.type)+'</span></h3>'+
+            cards([[p.attended.length+' / '+p.classDays,'class days attended']])+
+            tbl(['Date','First in','Last scan'],p.attended.map(function(a){return [dfmt(a.date),esc(a.in),esc(a.lastScan)+(a.leftCampus?' (left)':'')];}))+
+            (p.missedClassDays.length?'<p><b>Missed class days:</b> '+esc(p.missedClassDays.map(dfmt).join(', '))+'</p>':'');
+        }).join('');
+      });
+    });
+  }
+}
+
+// ─── background checks ──────────────────────────────────────────────────────
+function bgView(body){
+  run(body,{r:'bg'},function(j){
+    var h=cards([[j.activeAdults,'active adults'],[j.withDate,'with a check date'],[j.missing.length,'no check on file'],[j.attendedWithoutCheck,'of those have attended']]);
+    h+='<h3>No background check on file ('+j.missing.length+')</h3>'+tbl(['Name','Family','Type','Last attended'],j.missing.map(function(m){
+      return [esc(m.name),esc(m.familyName),esc(m.type),m.lastAttended?dfmt(m.lastAttended):'<span class="muted">never</span>'];}));
+    if(j.notSynced.length) h+='<h3>On BGChecks tab but not on People ('+j.notSynced.length+')</h3>'+tbl(['Name','Family','Date on BGChecks'],j.notSynced.map(function(m){return [esc(m.name),esc(m.familyName),dfmt(m.bgChecksDate)];}));
+    if(j.orphans.length) h+='<h3>On BGChecks tab, not found on People ('+j.orphans.length+')</h3>'+tbl(['Name','Person ID','Date'],j.orphans.map(function(m){return [esc(m.name),esc(m.personID),dfmt(m.date)];}));
+    if(j.expiring.length) h+='<h3>Due for renewal</h3>'+tbl(['Name','Family','Check date','Days old'],j.expiring.map(function(m){return [esc(m.name),esc(m.familyName),dfmt(m.date),m.ageDays];}));
+    return h;
+  });
+}
+
+// ─── entry points used by the dashboard ─────────────────────────────────────
+function open(){
+  var c = document.getElementById('fed-content');
+  c.style.display = 'block';
+  c.innerHTML = '<div id="rp-root"><div class="rp-meta" id="rp-meta"></div><div class="rp-tabs" id="rp-nav"></div><div id="rp-main"></div></div>';
+  drawPage();
+  api({r:'ping'}).then(function(j){
+    state.info = j;
+    if($('rp-meta')) $('rp-meta').textContent = 'Last class day: ' + dfmt(j.lastClassDay) + '  |  ' + j.classDays.length + ' class days this year';
+    if(state.tab==='att' && state.sub.att==='day') drawPage();
+  }).catch(function(){});
+}
+function refresh(){ if($('rp-root')) drawPage(); }
+window.RP = { open: open, refresh: refresh };
+})();
 </script>
 </body>
 </html>
