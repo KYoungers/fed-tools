@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FED Tools</title>
+<style>
+  :root { --navy:#3f6a95; --navy-dark:#2f5578; --red:#c0392b; --green:#1aa260; --amber:#b9740a;
+          --bg:#eef3f8; --text:#1c2b3a; --soft:#5b7086; --border:#d9e3ee; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:-apple-system,"Segoe UI",Arial,sans-serif; background:var(--bg); color:var(--text); }
+  header { background:var(--navy); color:#fff; padding:18px 20px; }
+  header h1 { font-size:22px; letter-spacing:1px; }
+  header p  { font-size:13px; color:#dfeaf5; margin-top:4px; }
+  main { max-width:760px; margin:0 auto; padding:16px; }
+  h2 { font-size:12px; text-transform:uppercase; letter-spacing:.6px; color:var(--soft); margin:22px 0 8px; }
+  .grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .full { grid-column:1 / -1; }
+  a.btn { display:block; text-decoration:none; color:#fff; border-radius:12px; padding:18px 16px; min-height:74px;
+          font-weight:bold; font-size:17px; line-height:1.25; background:var(--navy); }
+  a.btn small { display:block; font-weight:normal; font-size:12px; opacity:.9; margin-top:4px; }
+  a.btn:active { filter:brightness(.9); }
+  a.green { background:var(--green); }
+  a.amber { background:var(--amber); }
+  a.grey  { background:#fff; color:var(--text); border:1px solid var(--border); }
+  a.grey small { color:var(--soft); opacity:1; }
+  .note { background:#fff; border:1px solid var(--border); border-radius:10px; padding:12px 14px; font-size:13px; color:var(--soft); line-height:1.5; margin-top:8px; }
+  @media (max-width:520px) { .grid { grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>FED Tools</h1>
+  <p>Family Education Days &middot; check-in system</p>
+</header>
+<main>
+
+  <h2>Attendance kiosk &mdash; new (works offline)</h2>
+  <div class="grid">
+    <a class="btn green" href="/attendance-kiosk-v2.html?k=Tab1">Tablet 1<small>Attendance kiosk v2</small></a>
+    <a class="btn green" href="/attendance-kiosk-v2.html?k=Tab2">Tablet 2<small>Attendance kiosk v2</small></a>
+  </div>
+  <div class="note">Each tablet keeps its own name (Tablet 1 / Tablet 2) so the sheet shows which one recorded a scan. Open the new kiosk once while on WiFi so the tablet can save the roster.</div>
+
+  <h2>Attendance kiosk &mdash; original (backup)</h2>
+  <div class="grid">
+    <a class="btn amber full" href="/attendance-kiosk.html">Original attendance kiosk<small>Use this if the new one misbehaves. Needs WiFi for every scan.</small></a>
+  </div>
+
+  <h2>Service hours</h2>
+  <div class="grid">
+    <a class="btn full" href="/service-kiosk.html">Service kiosk<small>Original version</small></a>
+  </div>
+
+  <h2>Admin</h2>
+  <div class="grid">
+    <a class="btn grey" href="/dashboard.html">Campus dashboard<small>Who is on campus, serve hours</small></a>
+    <a class="btn grey" href="/badge-generator.html">Badge generator<small>Print badges</small></a>
+  </div>
+
+</main>
+</body>
+</html>
