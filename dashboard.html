@@ -531,10 +531,26 @@ function renderServe() {
     return;
   }
 
-  // Keyed by slotID — anyone who served this slot at any point today, whether
-  // they're still there or already checked out. See getServeActivityToday.
-  const serveMap = {};
-  serveActivity.forEach(s => { serveMap[s.slotID] = s; });
+  // A slot with several spots has ONE slotID shared by every spot (one Slots row per spot). So sign-ins are
+  // grouped by slotID and dealt out to that slot's spots: the assigned family's own person goes to that
+  // family's spot first; anyone else (covering) takes the next open spot; leftovers show as extra people.
+  const actBySlot = {};
+  serveActivity.forEach(s => { (actBySlot[s.slotID] = actBySlot[s.slotID] || []).push(s); });
+  Object.keys(actBySlot).forEach(k => actBySlot[k].sort((a, b) => String(a.checkInTime).localeCompare(String(b.checkInTime))));
+  const slotGroups = {}; // slotID -> spots in sheet order
+  slots.forEach(sl => { (slotGroups[sl.slotID] = slotGroups[sl.slotID] || []).push(sl); });
+  const servedBySpot = new Map();  // spot object -> activity entry
+  const extraBySlot = {};          // slotID -> entries with no spot left
+  Object.keys(slotGroups).forEach(id => {
+    const spots = slotGroups[id], pool = (actBySlot[id] || []).slice();
+    spots.forEach(sp => {
+      if (!sp.assignedFamilyID) return;
+      const i = pool.findIndex(e => e.familyID && e.familyID === sp.assignedFamilyID);
+      if (i >= 0) servedBySpot.set(sp, pool.splice(i, 1)[0]);
+    });
+    spots.forEach(sp => { if (!servedBySpot.has(sp) && pool.length) servedBySpot.set(sp, pool.shift()); });
+    if (pool.length) extraBySlot[id] = pool;
+  });
 
   const timeGroups = {};
   slots.forEach(slot => {
@@ -555,12 +571,13 @@ function renderServe() {
   content.innerHTML = sortedTimes.map(time => {
     const slotList = timeGroups[time];
     const rows = slotList.map(slot => {
-      const served = serveMap[slot.slotID];
+      const served = servedBySpot.get(slot);
       const assignedStr = slot.assignedFamily ? `<span class="slot-assigned">(${slot.assignedFamily})</span>` : '';
       let nameStr, timeStr;
       if (served) {
         const label = served.stillIn ? '✓ ' : '✓ ' + '(done) ';
-        nameStr = `<span class="slot-checked">${label}${served.displayName || 'Unknown'}</span> ${assignedStr}`;
+        const covering = slot.assignedFamilyID && served.familyID && served.familyID !== slot.assignedFamilyID;
+        nameStr = `<span class="slot-checked">${label}${served.displayName || 'Unknown'}</span> ` + (covering ? `<span class="slot-assigned">(covering ${slot.assignedFamily})</span>` : assignedStr);
         timeStr = served.checkInTime ? new Date(served.checkInTime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '';
         if (!served.stillIn && served.checkOutTime) {
           timeStr += ' – ' + new Date(served.checkOutTime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
@@ -569,13 +586,19 @@ function renderServe() {
         nameStr = `<span class="slot-empty">Empty</span> ${assignedStr}`;
         timeStr = '';
       }
+      const isLast = slotGroups[slot.slotID][slotGroups[slot.slotID].length - 1] === slot;
+      const extras = (isLast ? (extraBySlot[slot.slotID] || []) : []).map(e => `<div class="slot-row">
+        <div class="slot-name">${slot.slotName}</div>
+        <div><span class="slot-checked">✓ ${e.displayName || 'Unknown'}</span> <span class="slot-assigned">(extra, not a listed spot${e.familyName ? ' · ' + e.familyName : ''})</span></div>
+        <div class="slot-time">${e.checkInTime ? new Date(e.checkInTime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : ''}</div>
+      </div>`).join('');
       return `<div class="slot-row">
         <div class="slot-name">${slot.slotName}</div>
         <div>${nameStr}</div>
         <div class="slot-time">${timeStr}</div>
-      </div>`;
+      </div>` + extras;
     }).join('');
-    const filledCount = slotList.filter(s => serveMap[s.slotID]).length;
+    const filledCount = slotList.filter(s => servedBySpot.has(s)).length;
     const fillColor = filledCount === slotList.length ? '#1aa260' : filledCount === 0 ? '#c0392b' : '#b9740a';
     return `<div class="slot-block">
       <div class="slot-header"><span>${formatTimeBlock(time)}</span><span class="slot-fill" style="background:${fillColor};">${filledCount}/${slotList.length} filled today</span></div>
